@@ -1,0 +1,23 @@
+# Raíz del monorepo · Sistema Integral Concretos Tepexi
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Credenciales y secretos (nunca versionar)
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Editor / IDE (local)
+.idea/
+*.swp
+*.swo
+
+# Temporales
+*.tmp
+*.temp
+.cache/
