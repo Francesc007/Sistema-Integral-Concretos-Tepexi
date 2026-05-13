@@ -15,13 +15,6 @@ export function mergePersisted(raw: unknown): SupervisorAppState {
 
   const p = raw as Partial<SupervisorAppState>;
 
-  const tol =
-    typeof p.settings?.thicknessToleranceMm === "number" &&
-    Number.isFinite(p.settings.thicknessToleranceMm) &&
-    p.settings.thicknessToleranceMm > 0
-      ? p.settings.thicknessToleranceMm
-      : base.settings.thicknessToleranceMm;
-
   const checklistSteps =
     Array.isArray(p.checklistSteps) && p.checklistSteps.length > 0
       ? p.checklistSteps
@@ -59,7 +52,6 @@ export function mergePersisted(raw: unknown): SupervisorAppState {
 
   return {
     obraSesionId,
-    settings: { thicknessToleranceMm: tol },
     route,
     site: { ...base.site, ...p.site },
     risks: { ...base.risks, ...p.risks },

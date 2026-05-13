@@ -10,6 +10,7 @@ import {
 } from "./campoWorkflow";
 import {
   computeVolumeM3,
+  DEFAULT_THICKNESS_TOLERANCE_MM,
   estimateServiceMinutes,
   evaluateThicknessAlert,
 } from "./calculations";
@@ -18,8 +19,9 @@ import type { ServicioActivoProgramador, SupervisorAppState } from "./types";
 export function debeMostrarseServicioEnProgramador(
   state: SupervisorAppState,
 ): boolean {
-  const hechos = state.checklistSteps.filter((s) => s.done).length;
-  return hechos > 0 || evaluarHabilitacion(state).desbloqueado;
+  return (
+    typeof state.obraSesionId === "string" && state.obraSesionId.trim() !== ""
+  );
 }
 
 export function buildServicioActivoProgramador(
@@ -51,7 +53,7 @@ export function buildServicioActivoProgramador(
   const espAlert = evaluateThicknessAlert(
     state.cubing.nominalThicknessM,
     state.cubing.fieldThicknessM,
-    state.settings.thicknessToleranceMm,
+    DEFAULT_THICKNESS_TOLERANCE_MM,
   );
 
   const hab = evaluarHabilitacion(state);
@@ -78,6 +80,14 @@ export function buildServicioActivoProgramador(
     resumen += " RIESGO CRÍTICO en campo.";
   }
 
+  const bombaLbl =
+    state.pump.pumpType === "estacionaria"
+      ? "Estacionaria"
+      : state.pump.pumpType === "pluma"
+        ? "Pluma"
+        : "Directo";
+  resumen += ` Bomba ${bombaLbl}.`;
+
   return {
     obraSesionId: state.obraSesionId,
     referenciaObra: ref,
@@ -93,6 +103,18 @@ export function buildServicioActivoProgramador(
     alertaEspesor: espAlert !== null,
     resumenParaProgramador: resumen.trim(),
     actualizadoEn: new Date().toISOString(),
+    ubicacionDireccion:
+      state.route.obraFullAddressNotes.trim() !== ""
+        ? state.route.obraFullAddressNotes.trim()
+        : undefined,
+    ubicacionGpsResumen:
+      state.route.simulatedGpsPositionText.trim() !== ""
+        ? state.route.simulatedGpsPositionText.trim()
+        : undefined,
+    nombreCliente:
+      state.route.clienteNombre.trim() !== ""
+        ? state.route.clienteNombre.trim()
+        : undefined,
   };
 }
 

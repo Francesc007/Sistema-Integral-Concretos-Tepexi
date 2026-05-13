@@ -29,9 +29,12 @@ const COPY: Record<
 export function RiskSemaphore({
   nivel,
   compact,
+  className = "",
 }: {
   nivel: SemaphoreLevel;
   compact?: boolean;
+  /** Sobrescribe/anexa estilos al contenedor (p. ej. posición fija). */
+  className?: string;
 }) {
   const c = COPY[nivel];
 
@@ -45,7 +48,7 @@ export function RiskSemaphore({
 
   return (
     <div
-      className={`rounded-lg border border-stone-200 bg-white shadow-sm ${compact ? "p-3" : "p-4"}`}
+      className={`rounded-lg border border-stone-200 bg-white shadow-sm ${compact ? "p-3" : "p-4"} ${className}`.trim()}
       role="status"
       aria-live="polite"
       aria-label={`Semáforo de riesgo: ${nivel}`}

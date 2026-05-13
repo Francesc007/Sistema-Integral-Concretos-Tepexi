@@ -14,6 +14,7 @@ export function DecimalMeterInput({
   id,
   "aria-describedby": ariaDescribedBy,
   className,
+  disabled,
   value,
   placeholder,
   onCommit,
@@ -21,6 +22,7 @@ export function DecimalMeterInput({
   id: string;
   "aria-describedby"?: string;
   className?: string;
+  disabled?: boolean;
   value: number | "";
   placeholder?: string;
   onCommit: (next: number | "") => void;
@@ -40,7 +42,7 @@ export function DecimalMeterInput({
 
   const baseClass =
     className ??
-    "mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-blue-600/80 focus:ring-2 focus:ring-blue-600/35";
+    "mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 font-mono text-sm outline-none focus:border-blue-600/80 focus:ring-2 focus:ring-blue-600/35 disabled:cursor-not-allowed disabled:bg-stone-100";
 
   const commitFromString = (raw: string) => {
     const t = raw.trim().replace(",", ".");
@@ -83,6 +85,7 @@ export function DecimalMeterInput({
       inputMode="decimal"
       autoComplete="off"
       spellCheck={false}
+      disabled={disabled}
       aria-describedby={ariaDescribedBy}
       placeholder={placeholder}
       className={baseClass}

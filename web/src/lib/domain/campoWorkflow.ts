@@ -2,7 +2,11 @@
  * Flujo Supervisión de Campo — candados entre etapas + semáforo de riesgo.
  */
 
-import { computeVolumeM3, evaluateThicknessAlert } from "./calculations";
+import {
+  computeVolumeM3,
+  DEFAULT_THICKNESS_TOLERANCE_MM,
+  evaluateThicknessAlert,
+} from "./calculations";
 import type {
   ChecklistSectionId,
   RiskFlags,
@@ -59,6 +63,7 @@ export function evaluarHabilitacion(state: SupervisorAppState): PasoCandadoResul
     );
   return {
     desbloqueado: faltantes.length === 0,
+    ...(faltantes.length > 0 ? { candadoPorEtapa: "habilitacion" as const } : {}),
     faltantes,
   };
 }
@@ -69,9 +74,7 @@ export function evaluarCubicacion(state: SupervisorAppState): PasoCandadoResult 
     return {
       desbloqueado: false,
       candadoPorEtapa: "habilitacion",
-      faltantes: [
-        "Candado: complete antes Habilitación de obra (cimbra lista + acceso libre).",
-      ],
+      faltantes: hab.faltantes,
     };
   }
 
@@ -91,7 +94,7 @@ export function evaluarCubicacion(state: SupervisorAppState): PasoCandadoResult 
   const esp = evaluateThicknessAlert(
     state.cubing.nominalThicknessM,
     state.cubing.fieldThicknessM,
-    state.settings.thicknessToleranceMm,
+    DEFAULT_THICKNESS_TOLERANCE_MM,
   );
   if (esp)
     faltantes.push(
@@ -100,6 +103,7 @@ export function evaluarCubicacion(state: SupervisorAppState): PasoCandadoResult 
 
   return {
     desbloqueado: faltantes.length === 0,
+    ...(faltantes.length > 0 ? { candadoPorEtapa: "cubicacion" as const } : {}),
     faltantes,
   };
 }
@@ -109,8 +113,8 @@ export function evaluarBombeo(state: SupervisorAppState): PasoCandadoResult {
   if (!cub.desbloqueado) {
     return {
       desbloqueado: false,
-      candadoPorEtapa: "cubicacion",
-      faltantes: ["Candado: complete antes la etapa Cubicación."],
+      candadoPorEtapa: cub.candadoPorEtapa ?? "cubicacion",
+      faltantes: cub.faltantes,
     };
   }
 
@@ -134,6 +138,7 @@ export function evaluarBombeo(state: SupervisorAppState): PasoCandadoResult {
 
   return {
     desbloqueado: faltantes.length === 0,
+    ...(faltantes.length > 0 ? { candadoPorEtapa: "bombeo" as const } : {}),
     faltantes,
   };
 }
@@ -143,8 +148,8 @@ export function evaluarCoordinacion(state: SupervisorAppState): PasoCandadoResul
   if (!bom.desbloqueado) {
     return {
       desbloqueado: false,
-      candadoPorEtapa: "bombeo",
-      faltantes: ["Candado: complete antes Bombeo y logística."],
+      candadoPorEtapa: bom.candadoPorEtapa ?? "bombeo",
+      faltantes: bom.faltantes,
     };
   }
 
@@ -161,6 +166,7 @@ export function evaluarCoordinacion(state: SupervisorAppState): PasoCandadoResul
 
   return {
     desbloqueado: faltantes.length === 0,
+    ...(faltantes.length > 0 ? { candadoPorEtapa: "coordinacion" as const } : {}),
     faltantes,
   };
 }
@@ -170,8 +176,8 @@ export function evaluarCierre(state: SupervisorAppState): PasoCandadoResult {
   if (!coord.desbloqueado) {
     return {
       desbloqueado: false,
-      candadoPorEtapa: "coordinacion",
-      faltantes: ["Candado: complete antes Coordinación de colado."],
+      candadoPorEtapa: coord.candadoPorEtapa ?? "coordinacion",
+      faltantes: coord.faltantes,
     };
   }
 
@@ -192,6 +198,7 @@ export function evaluarCierre(state: SupervisorAppState): PasoCandadoResult {
 
   return {
     desbloqueado: faltantes.length === 0,
+    ...(faltantes.length > 0 ? { candadoPorEtapa: "cierre" as const } : {}),
     faltantes,
   };
 }
@@ -273,7 +280,7 @@ export function checklistSectionCandado(
         return {
           editable: false,
           mensaje:
-            "Candado: complete Habilitación de obra en Supervisión de campo (cimbra lista + acceso libre) antes de marcar esta sección.",
+            "Candado: indicar en checklist contacto cliente, cimbrado completo y acceso libre (sección Habilitación) antes de la pre-cubicación.",
         };
       }
       return { editable: true, mensaje: null };
@@ -285,7 +292,7 @@ export function checklistSectionCandado(
         return {
           editable: false,
           mensaje:
-            "Candado: complete la etapa Cubicación en Supervisión de campo antes de Bombeo y suministro.",
+            "Candado: complete antes la sección Cubicación del checklist— dimensiones válidas, elemento y volumen aclarados.",
         };
       }
       return { editable: true, mensaje: null };
@@ -297,7 +304,7 @@ export function checklistSectionCandado(
         return {
           editable: false,
           mensaje:
-            "Candado: complete Bombeo y logística en Supervisión de campo antes de Coordinación.",
+            "Candado: complete antes Bombeo y suministro en el checklist antes de Coordinación.",
         };
       }
       return { editable: true, mensaje: null };
@@ -309,7 +316,7 @@ export function checklistSectionCandado(
         return {
           editable: false,
           mensaje:
-            "Candado: complete Coordinación de colado en Supervisión de campo antes del cierre administrativo.",
+            "Candado: complete antes Coordinación de colado en el checklist antes del cierre administrativo.",
         };
       }
       return { editable: true, mensaje: null };
@@ -318,4 +325,203 @@ export function checklistSectionCandado(
     default:
       return { editable: true, mensaje: null };
   }
+}
+
+/** Dónde corregir datos en el checklist según la etapa operativa que falla. */
+export function checklistSeccionesPorEtapaOperativa(
+  etapa: CampoEtapaId,
+): ChecklistSectionId[] {
+  switch (etapa) {
+    case "habilitacion":
+      return ["programacion", "acceso_riesgos"];
+    case "cubicacion":
+      return ["elemento_precubicacion", "cubicacion"];
+    case "bombeo":
+      return ["bombeo_suministro"];
+    case "coordinacion":
+      return ["coordinacion"];
+    case "cierre":
+      return ["cierre_admin"];
+    default:
+      return [];
+  }
+}
+
+/**
+ * Primer candado operativo que falla: secciones del checklist cuyos formularios
+ * deben mostrarse aunque el avance de checkboxes esté más adelante.
+ */
+export function getChecklistCorrectionSectionIds(
+  state: SupervisorAppState,
+): ChecklistSectionId[] {
+  const hab = evaluarHabilitacion(state);
+  if (!hab.desbloqueado) {
+    return [...checklistSeccionesPorEtapaOperativa("habilitacion")];
+  }
+  const cub = evaluarCubicacion(state);
+  if (!cub.desbloqueado) {
+    return [
+      ...checklistSeccionesPorEtapaOperativa(
+        cub.candadoPorEtapa ?? "cubicacion",
+      ),
+    ];
+  }
+  const bom = evaluarBombeo(state);
+  if (!bom.desbloqueado) {
+    return [
+      ...checklistSeccionesPorEtapaOperativa(bom.candadoPorEtapa ?? "bombeo"),
+    ];
+  }
+  const coord = evaluarCoordinacion(state);
+  if (!coord.desbloqueado) {
+    return [
+      ...checklistSeccionesPorEtapaOperativa(
+        coord.candadoPorEtapa ?? "coordinacion",
+      ),
+    ];
+  }
+  return [];
+}
+
+/** Firma estable del candado activo (scroll / avisos sin duplicar lógica). */
+export function firmaCandadoOperativoActivo(state: SupervisorAppState): string {
+  const hab = evaluarHabilitacion(state);
+  if (!hab.desbloqueado) {
+    return `hab|${hab.faltantes.join("¦")}`;
+  }
+  const cub = evaluarCubicacion(state);
+  if (!cub.desbloqueado) {
+    return `cub|${cub.candadoPorEtapa ?? "cubicacion"}|${cub.faltantes.join("¦")}`;
+  }
+  const bom = evaluarBombeo(state);
+  if (!bom.desbloqueado) {
+    return `bom|${bom.candadoPorEtapa ?? "bombeo"}|${bom.faltantes.join("¦")}`;
+  }
+  const coord = evaluarCoordinacion(state);
+  if (!coord.desbloqueado) {
+    return `coord|${coord.candadoPorEtapa ?? "coordinacion"}|${coord.faltantes.join("¦")}`;
+  }
+  return "ok";
+}
+
+/**
+ * Información unificada del primer candado operativo incompleto
+ * (independiente de en qué fila del checklist vaya marcado).
+ */
+export function checklistBloqueoOperativoActual(
+  state: SupervisorAppState,
+): ChecklistCandadoDetalle | null {
+  const hab = evaluarHabilitacion(state);
+  if (!hab.desbloqueado) {
+    return {
+      editable: false,
+      mensaje:
+        "Habilitación incompleta: programación cliente/cimbra + acceso libre antes de siguientes etapas.",
+      faltantesConcretos: hab.faltantes,
+      revisarEnSecciones: checklistSeccionesPorEtapaOperativa("habilitacion"),
+      etapaBloqueadora: "habilitacion",
+    };
+  }
+
+  const cub = evaluarCubicacion(state);
+  if (!cub.desbloqueado) {
+    const etapa = cub.candadoPorEtapa ?? "cubicacion";
+    return {
+      editable: false,
+      mensaje:
+        "Complete elemento, volumen (L×A×E), responsabilidades de espesor y volumen válido antes de bombeo.",
+      faltantesConcretos: cub.faltantes,
+      revisarEnSecciones: checklistSeccionesPorEtapaOperativa(etapa),
+      etapaBloqueadora: etapa,
+    };
+  }
+
+  const bom = evaluarBombeo(state);
+  if (!bom.desbloqueado) {
+    const etapa = bom.candadoPorEtapa ?? "bombeo";
+    return {
+      editable: false,
+      mensaje: checklistSectionCandado("bombeo_suministro", state).mensaje,
+      faltantesConcretos: bom.faltantes,
+      revisarEnSecciones: checklistSeccionesPorEtapaOperativa(etapa),
+      etapaBloqueadora: etapa,
+    };
+  }
+
+  const coord = evaluarCoordinacion(state);
+  if (!coord.desbloqueado) {
+    const etapa = coord.candadoPorEtapa ?? "coordinacion";
+    return {
+      editable: false,
+      mensaje: checklistSectionCandado("coordinacion", state).mensaje,
+      faltantesConcretos: coord.faltantes,
+      revisarEnSecciones: checklistSeccionesPorEtapaOperativa(etapa),
+      etapaBloqueadora: etapa,
+    };
+  }
+
+  return null;
+}
+
+export interface ChecklistCandadoDetalle {
+  editable: boolean;
+  mensaje: string | null;
+  faltantesConcretos: string[];
+  revisarEnSecciones: ChecklistSectionId[];
+  etapaBloqueadora: CampoEtapaId | null;
+}
+
+export function checklistSectionCandadoDetalle(
+  sectionId: ChecklistSectionId,
+  state: SupervisorAppState,
+): ChecklistCandadoDetalle {
+  const base = checklistSectionCandado(sectionId, state);
+  if (base.editable) {
+    return {
+      editable: true,
+      mensaje: null,
+      faltantesConcretos: [],
+      revisarEnSecciones: [],
+      etapaBloqueadora: null,
+    };
+  }
+
+  let ev: PasoCandadoResult;
+  let etapaBloqueadora: CampoEtapaId;
+
+  switch (sectionId) {
+    case "elemento_precubicacion":
+    case "cubicacion":
+      ev = evaluarHabilitacion(state);
+      etapaBloqueadora = ev.candadoPorEtapa ?? "habilitacion";
+      break;
+    case "bombeo_suministro":
+      ev = evaluarCubicacion(state);
+      etapaBloqueadora = ev.candadoPorEtapa ?? "cubicacion";
+      break;
+    case "coordinacion":
+      ev = evaluarBombeo(state);
+      etapaBloqueadora = ev.candadoPorEtapa ?? "bombeo";
+      break;
+    case "cierre_admin":
+      ev = evaluarCoordinacion(state);
+      etapaBloqueadora = ev.candadoPorEtapa ?? "coordinacion";
+      break;
+    default:
+      return {
+        editable: true,
+        mensaje: null,
+        faltantesConcretos: [],
+        revisarEnSecciones: [],
+        etapaBloqueadora: null,
+      };
+  }
+
+  return {
+    editable: false,
+    mensaje: base.mensaje,
+    faltantesConcretos: ev.faltantes,
+    revisarEnSecciones: checklistSeccionesPorEtapaOperativa(etapaBloqueadora),
+    etapaBloqueadora,
+  };
 }

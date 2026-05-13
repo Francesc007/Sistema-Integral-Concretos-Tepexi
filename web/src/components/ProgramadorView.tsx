@@ -1,5 +1,6 @@
 "use client";
 
+import { MapPin } from "lucide-react";
 import type { ServicioActivoProgramador } from "@/lib/domain/types";
 
 function badgeSemClass(level: ServicioActivoProgramador["semaforoRiesgo"]) {
@@ -44,9 +45,11 @@ function bordeFila(row: ServicioActivoProgramador): string {
 export function ProgramadorView({
   servicios,
   obraSesionActualId,
+  persistenceReady,
 }: {
   servicios: ServicioActivoProgramador[];
   obraSesionActualId: string;
+  persistenceReady: boolean;
 }) {
   const ordenados = [...servicios].sort((a, b) =>
     b.actualizadoEn.localeCompare(a.actualizadoEn),
@@ -59,18 +62,39 @@ export function ProgramadorView({
           Servicios activos (programador)
         </h2>
         <p className="mt-2 text-sm text-stone-700">
-          Demo local: cuando el supervisor marca avances en el checklist o
-          cumple habilitación, la fila se crea o actualiza aquí — mismo{" "}
-          <span className="font-mono text-xs text-stone-600">localStorage</span>
-          , simulando el pull automático del tablero.
+          Misma información que viene del <strong className="text-stone-800">Supervisor</strong> en este navegador
+          (<span className="font-mono text-xs text-stone-600">localStorage</span>). La fila de la obra en curso se
+          actualiza sola cuando cambian fecha, ubicación, riesgos, cubicación y bomba.
         </p>
+        <ul className="mt-4 list-inside list-disc space-y-1.5 border-t border-blue-200/70 pt-4 text-xs text-stone-700 sm:text-[13px]">
+          <li>
+            <strong className="text-stone-800">Referencia / resumen:</strong> dónde se vacía + texto de estado
+            para ventana de colado y alertas.
+          </li>
+          <li>
+            <strong className="text-stone-800">m³</strong> y <strong className="text-stone-800">Tiempo est.:</strong>
+            tamaño del pedido y minutos útiles para turnos y rutas de olla.
+          </li>
+          <li>
+            <strong className="text-stone-800">Riesgo (semáforo):</strong> condiciones registradas por el supervisor
+            (criticidad antes de despachar).
+          </li>
+          <li>
+            <strong className="text-stone-800">Estado operativo:</strong> lectura rápida: despachable, en espera o
+            revisar antes de mover unidades.
+          </li>
+        </ul>
       </section>
 
-      {ordenados.length === 0 ? (
+      {!persistenceReady ? (
+        <section className="rounded-lg border border-dashed border-stone-300 bg-stone-50 p-8 text-center text-sm text-stone-600">
+          Cargando datos locales…
+        </section>
+      ) : ordenados.length === 0 ? (
         <section className="rounded-lg border border-dashed border-stone-300 bg-stone-50 p-10 text-center text-sm text-stone-600">
-          No hay servicios en bandeja. Abra la vista{" "}
-          <strong>Supervisor</strong>, marque al menos un ítem del checklist o
-          complete habilitación — la fila aparecerá sola en esta tabla.
+          Todavía no hay sesión de obra válida para mostrar en la bandeja. Pulse{" "}
+          <strong className="text-stone-800">Reiniciar</strong> o recargue; al iniciar debe asignarse un ID de
+          sesión.
         </section>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-stone-200 shadow-sm">
@@ -90,7 +114,8 @@ export function ProgramadorView({
             <tbody className="divide-y divide-stone-200 bg-white">
               {ordenados.map((row) => {
                 const esSesionActual =
-                  obraSesionActualId && row.obraSesionId === obraSesionActualId;
+                  obraSesionActualId &&
+                  row.obraSesionId === obraSesionActualId;
                 return (
                   <tr
                     key={row.obraSesionId}
@@ -100,10 +125,36 @@ export function ProgramadorView({
                       <div className="font-medium text-stone-900">
                         {row.referenciaObra}
                       </div>
+                      {row.nombreCliente && (
+                        <p className="mt-1 text-xs font-medium text-stone-700">
+                          Cliente: {row.nombreCliente}
+                        </p>
+                      )}
                       {esSesionActual && (
                         <span className="mt-1 inline-block rounded bg-blue-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-900">
                           Sesión actual (supervisor)
                         </span>
+                      )}
+                      {(row.ubicacionDireccion || row.ubicacionGpsResumen) && (
+                        <div className="mt-2 flex items-start gap-1.5 border-l-2 border-blue-400/40 pl-2 text-xs text-stone-600">
+                          <MapPin
+                            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-700"
+                            strokeWidth={2.2}
+                            aria-hidden
+                          />
+                          <div className="min-w-0">
+                            {row.ubicacionDireccion && (
+                              <p className="font-medium text-stone-800">
+                                {row.ubicacionDireccion}
+                              </p>
+                            )}
+                            {row.ubicacionGpsResumen && (
+                              <p className="mt-0.5 font-mono text-[11px] text-stone-600">
+                                {row.ubicacionGpsResumen}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       )}
                       <p className="mt-2 max-w-md text-xs text-stone-500">
                         {row.resumenParaProgramador}
@@ -126,7 +177,7 @@ export function ProgramadorView({
                       ) : (
                         <span className="text-xs text-stone-500">
                           {row.tiempoColadoNota ??
-                            "Complete datos en el Calculador de Rendimiento Operativo"}
+                            "Complete volumen y bomba en el checklist supervisor"}
                         </span>
                       )}
                     </td>

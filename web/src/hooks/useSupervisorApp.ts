@@ -18,7 +18,6 @@ import {
 } from "@/lib/domain/persistState";
 import { upsertServiciosActivosProgramador } from "@/lib/domain/serviciosProgramadorSync";
 import type {
-  AppSettings,
   ChecklistStep,
   CubingDimensions,
   DailyReportLine,
@@ -75,7 +74,6 @@ export function useSupervisorApp() {
         precalc: state.precalc,
         cubing: state.cubing,
         pump: state.pump,
-        settings: state.settings,
       }),
     [
       state.obraSesionId,
@@ -86,7 +84,6 @@ export function useSupervisorApp() {
       state.precalc,
       state.cubing,
       state.pump,
-      state.settings,
     ],
   );
 
@@ -143,13 +140,6 @@ export function useSupervisorApp() {
     if (!persistenceReady) return;
     saveSupervisorState(state);
   }, [persistenceReady, state]);
-
-  const setSettings = useCallback((patch: Partial<AppSettings>) => {
-    setState((s) => ({
-      ...s,
-      settings: { ...s.settings, ...patch },
-    }));
-  }, []);
 
   const setRoute = useCallback((patch: Partial<RouteAndSchedule>) => {
     setState((s) => ({ ...s, route: { ...s.route, ...patch } }));
@@ -298,13 +288,8 @@ export function useSupervisorApp() {
       evaluateThicknessAlert(
         state.cubing.nominalThicknessM,
         state.cubing.fieldThicknessM,
-        state.settings.thicknessToleranceMm,
       ),
-    [
-      state.cubing.nominalThicknessM,
-      state.cubing.fieldThicknessM,
-      state.settings.thicknessToleranceMm,
-    ],
+    [state.cubing.nominalThicknessM, state.cubing.fieldThicknessM],
   );
 
   const volumeDerived = useMemo(() => {
@@ -365,7 +350,6 @@ export function useSupervisorApp() {
   return {
     state,
     persistenceReady,
-    setSettings,
     setRoute,
     setSite,
     setRisks,

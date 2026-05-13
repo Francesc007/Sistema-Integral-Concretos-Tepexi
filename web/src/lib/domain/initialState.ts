@@ -12,11 +12,9 @@ function todayISODate(): string {
 export function createInitialSupervisorState(): SupervisorAppState {
   return {
     obraSesionId: "",
-    settings: {
-      thicknessToleranceMm: 10,
-    },
     route: {
       serviceDate: todayISODate(),
+      clienteNombre: "",
       surveyReportSubmitted: false,
       clientContactForFormwork: false,
       formworkComplete: false,

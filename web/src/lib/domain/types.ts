@@ -31,6 +31,8 @@ export interface ChecklistStep {
 export interface RouteAndSchedule {
   /** Servicio prioritario — fecha de referencia (YYYY-MM-DD) */
   serviceDate: string;
+  /** Nombre cliente / empresa de obra (cabecera programador/checklist). */
+  clienteNombre: string;
   surveyReportSubmitted: boolean;
   clientContactForFormwork: boolean;
   formworkComplete: boolean;
@@ -139,11 +141,6 @@ export interface DailyReportLine {
   incidents: string;
 }
 
-export interface AppSettings {
-  /** Tolerancia nominal vs campo para alerta de espesor (mm) */
-  thicknessToleranceMm: number;
-}
-
 /** Alerta visible para el dashboard de programación (MVP: mismo navegador / localStorage). */
 export interface ProgramacionAlert {
   id: string;
@@ -170,12 +167,15 @@ export interface ServicioActivoProgramador {
   alertaEspesor: boolean;
   resumenParaProgramador: string;
   actualizadoEn: string;
+  /** Copiados del supervisor para despacho — opcionales por compatibilidad. */
+  ubicacionDireccion?: string;
+  ubicacionGpsResumen?: string;
+  nombreCliente?: string;
 }
 
 export interface SupervisorAppState {
   /** Identifica la sesión de obra actual (una por “servicio” en demo local). */
   obraSesionId: string;
-  settings: AppSettings;
   route: RouteAndSchedule;
   site: SiteInspection;
   risks: RiskFlags;
